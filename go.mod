@@ -1,4 +1,4 @@
-module messenger
+module github.com/HalvaPovidlo/messenger
 
 go 1.19
 
