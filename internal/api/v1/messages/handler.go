@@ -8,6 +8,7 @@ import (
 type messageService interface {
 	History(c echo.Context) error
 	Message(c echo.Context) error
+	PersonalMessage(c echo.Context) error
 }
 
 type Handler struct {
@@ -27,6 +28,7 @@ func (h *Handler) Run(port string) {
 
 	e.POST("/msg", h.messages.Message)
 	e.GET("/msg", h.messages.History)
+	e.GET("/msg/:to", h.messages.PersonalMessage)
 
 	e.Logger.Fatal(e.Start(":" + port))
 }
