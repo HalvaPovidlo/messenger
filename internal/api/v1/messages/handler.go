@@ -9,6 +9,7 @@ type messageService interface {
 	History(c echo.Context) error
 	Message(c echo.Context) error
 	PersonalMessage(c echo.Context) error
+	PersonalHistory(c echo.Context) error
 }
 
 type Handler struct {
@@ -26,9 +27,9 @@ func (h *Handler) Run(port string) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.POST("/msg", h.messages.Message)
-	e.GET("/msg", h.messages.History)
-	e.GET("/msg/:to", h.messages.PersonalMessage)
-
+	e.POST("/msg", h.messages.Message)                  //принимает сообщение в общий чат
+	e.GET("/msg", h.messages.History)                   //возвращает историю сообщений общего чата
+	e.POST("/msg/:to", h.messages.PersonalMessage)      //принимает сообщение в личный чут
+	e.GET("/msg/:from/:to", h.messages.PersonalHistory) //возвращает историю личного чата
 	e.Logger.Fatal(e.Start(":" + port))
 }
