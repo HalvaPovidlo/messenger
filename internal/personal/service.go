@@ -42,15 +42,3 @@ func buildKey(from, to string) key {
 	}
 	return key(to + "_" + from)
 }
-
-//func (k *personal) PersonalHistory(c echo.Context) ([]message.History, error) {
-//	person1 := c.Param("from")
-//	person2 := c.Param("to")
-//	key := buildKey(person1, person2)
-//	v := k.history[key]
-//	if len(v) == 0 {
-//		return nil, errors.New("no such dialogue")
-//	}
-//
-//	return c.String(http.StatusOK, v), nil
-//}
