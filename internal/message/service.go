@@ -17,9 +17,12 @@ type personal struct {
 	cache   map[key][]message.Item
 }
 
-func New() *personal {
+func New(database2 database) *personal {
 	history := make(map[key][]message.Item, 100)
-	return &personal{cache: history}
+	return &personal{
+		cache:   history,
+		storage: database2,
+	}
 }
 
 func (k *personal) Message(from, to, text string) error {
