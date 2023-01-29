@@ -1,4 +1,4 @@
-package messages
+package v1
 
 import (
 	"crypto/subtle"
@@ -15,15 +15,17 @@ type messageService interface {
 
 type Handler struct {
 	messages messageService
-	auth     map[string][]byte
+	paroli   map[string][]byte
 }
 
 func NewMessagesHandler(messages messageService) *Handler {
-
-	return &Handler{
+	maiParoli := make(map[string][]byte)
+	maiParoli["maksim"] = []byte("abobus")
+	handler := &Handler{
 		messages: messages,
-		auth:     make(map[string][]byte),
+		paroli:   maiParoli,
 	}
+	return handler
 }
 
 func (h *Handler) Run(port string) {
@@ -32,22 +34,22 @@ func (h *Handler) Run(port string) {
 	e.Use(middleware.Recover())
 	e.Use(middleware.BasicAuth(h.Auth))
 
-	e.POST("/msg", h.messages.Message)                  //принимает сообщение в общий чат
-	e.GET("/msg", h.messages.History)                   //возвращает историю сообщений общего чата
-	e.POST("/msg/:to", h.messages.PersonalMessage)      //принимает сообщение в личный чут
-	e.GET("/msg/:from/:to", h.messages.PersonalHistory) //возвращает историю личного чата
+	e.POST("/msg", h.messages.Message)             //принимает сообщение в общий чат
+	e.GET("/msg", h.messages.History)              //возвращает историю сообщений общего чата
+	e.POST("/msg/:to", h.messages.PersonalMessage) //принимает сообщение в личный чут
+	e.GET("/msg/:to", h.messages.PersonalHistory)  //возвращает историю личного чата
 	e.Logger.Fatal(e.Start(":" + port))
 }
 
 func (h *Handler) Auth(username, password string, c echo.Context) (bool, error) {
-	secret, ok := h.auth[username]
+	secret, ok := h.paroli[username]
 	if !ok {
 		return false, nil
 	}
+	c.Set("username", username)
 	if subtle.ConstantTimeCompare([]byte(password), secret) == 1 {
 		return true, nil
 	}
 
 	return false, nil
 }
-
