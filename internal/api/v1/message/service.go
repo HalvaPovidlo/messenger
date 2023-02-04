@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/HalvaPovidlo/messenger/internal/pkg/message"
+	"github.com/HalvaPovidlo/messenger/internal/pkg/user"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -32,7 +33,7 @@ func NewService(p PersonalService) *Messenger {
 
 func (m *Messenger) PersonalMessage(c echo.Context) error {
 	name := c.Param("to")
-	from, err := getUsername(c)
+	from, err := getUser(c)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "")
 	}
@@ -41,14 +42,14 @@ func (m *Messenger) PersonalMessage(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return err
 	}
-	m.personal.Message(from, name, body.Text)
+	m.personal.Message(from.ID.String(), name, body.Text)
 	fmt.Println(name)
 	return c.String(http.StatusOK, "")
 
 }
 func (m *Messenger) PersonalHistory(c echo.Context) error {
 	var otvet string
-	from, err := getUsername(c)
+	from, err := getUser(c)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "")
 	}
@@ -81,10 +82,10 @@ func (m *Messenger) Message(c echo.Context) error {
 	return c.JSON(http.StatusCreated, u)
 }
 
-func getUsername(c echo.Context) (string, error) {
-	v, ok := c.Get("username").(string)
+func getUser(c echo.Context) (*user.User, error) {
+	v, ok := c.Get("user").(*user.User)
 	if ok {
 		return v, nil
 	}
-	return "", errors.New("username is empty")
+	return nil, errors.New("username is empty")
 }

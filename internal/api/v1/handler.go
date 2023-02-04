@@ -1,12 +1,16 @@
 package v1
 
 import (
-	"crypto/subtle"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
-type messageService interface {
+type registrationHandler interface {
+	Register(c echo.Context) error
+	Auth(username, password string, c echo.Context) (bool, error)
+}
+
+type messageHandler interface {
 	History(c echo.Context) error
 	Message(c echo.Context) error
 	PersonalMessage(c echo.Context) error
@@ -14,16 +18,15 @@ type messageService interface {
 }
 
 type Handler struct {
-	messages messageService
-	paroli   map[string][]byte
+	messages messageHandler
+
+	registration registrationHandler
 }
 
-func NewMessagesHandler(messages messageService) *Handler {
-	maiParoli := make(map[string][]byte)
-	maiParoli["maksim"] = []byte("abobus")
+func NewMessagesHandler(messages messageHandler, registration registrationHandler) *Handler {
 	handler := &Handler{
-		messages: messages,
-		paroli:   maiParoli,
+		messages:     messages,
+		registration: registration,
 	}
 	return handler
 }
@@ -32,24 +35,13 @@ func (h *Handler) Run(port string) {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.BasicAuth(h.Auth))
+	e.Use(middleware.BasicAuth(h.registration.Auth))
 
-	e.POST("/msg", h.messages.Message)             //принимает сообщение в общий чат
-	e.GET("/msg", h.messages.History)              //возвращает историю сообщений общего чата
-	e.POST("/msg/:to", h.messages.PersonalMessage) //принимает сообщение в личный чут
-	e.GET("/msg/:to", h.messages.PersonalHistory)  //возвращает историю личного чата
+	e.POST("/msg", h.messages.Message)               //принимает сообщение в общий чат
+	e.GET("/msg", h.messages.History)                //возвращает историю сообщений общего чата
+	e.POST("/msg/:to", h.messages.PersonalMessage)   //принимает сообщение в личный чут
+	e.GET("/msg/:to", h.messages.PersonalHistory)    //возвращает историю личного чата
+	e.POST("/registration", h.registration.Register) //региструрет пользователя
+
 	e.Logger.Fatal(e.Start(":" + port))
-}
-
-func (h *Handler) Auth(username, password string, c echo.Context) (bool, error) {
-	secret, ok := h.paroli[username]
-	if !ok {
-		return false, nil
-	}
-	c.Set("username", username)
-	if subtle.ConstantTimeCompare([]byte(password), secret) == 1 {
-		return true, nil
-	}
-
-	return false, nil
 }
