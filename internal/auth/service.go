@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/subtle"
 	"errors"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -14,12 +15,14 @@ type credentials struct {
 
 type service struct {
 	cache   map[string]credentials // login -> credentials
+	cacheMX *sync.RWMutex
 	storage *storage
 }
 
 func New() (*service, error) {
 	s := &service{
 		storage: NewStorage(),
+		cacheMX: &sync.RWMutex{},
 	}
 	all, err := s.storage.GetAll()
 	if err != nil {
@@ -35,7 +38,9 @@ func New() (*service, error) {
 }
 
 func (s *service) Verify(login, password string) (uuid.UUID, bool) {
+	s.cacheMX.RLock()
 	d, ok := s.cache[login]
+	s.cacheMX.RUnlock()
 	if !ok {
 		return uuid.Nil, false
 	}
@@ -44,7 +49,9 @@ func (s *service) Verify(login, password string) (uuid.UUID, bool) {
 }
 
 func (s *service) Register(name, surname, login, password string) error {
+	s.cacheMX.Lock()
 	if _, ok := s.cache[login]; ok {
+		s.cacheMX.Unlock()
 		return errors.New("login already exists")
 	}
 
@@ -53,11 +60,16 @@ func (s *service) Register(name, surname, login, password string) error {
 		Password: []byte(password),
 	}
 
+	s.cache[login] = creds
+	s.cacheMX.Unlock()
+
 	err := s.storage.Add(login, creds)
 	if err != nil {
+		s.cacheMX.Lock()
+		delete(s.cache, login)
+		s.cacheMX.Unlock()
 		return err
 	}
 
-	s.cache[login] = creds
 	return nil
 }

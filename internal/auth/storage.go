@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 )
 
 const credentialsFile = "credentials.json"
@@ -14,10 +15,11 @@ type data struct {
 }
 
 type storage struct {
+	*sync.Mutex
 }
 
 func NewStorage() *storage {
-	return &storage{}
+	return &storage{Mutex: &sync.Mutex{}}
 }
 
 func (s *storage) Add(login string, creds credentials) error {
@@ -25,6 +27,8 @@ func (s *storage) Add(login string, creds credentials) error {
 	if err != nil {
 		return err
 	}
+	s.Lock()
+	defer s.Unlock()
 
 	d.Credentials[login] = creds
 
@@ -41,6 +45,9 @@ func (s *storage) Get(login string) (credentials, error) {
 }
 
 func (s *storage) GetAll() (data, error) {
+	s.Lock()
+	defer s.Unlock()
+
 	file, err := os.Open(credentialsFile)
 	switch {
 	case errors.Is(err, os.ErrNotExist):

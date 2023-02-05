@@ -5,23 +5,27 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/HalvaPovidlo/messenger/internal/pkg/message"
 )
 
 type Messages struct {
 	History []message.Message `json:"messages"`
-	Bytes   []byte            `json:"bytes"`
 }
 
 type storage struct {
+	*sync.Mutex
 }
 
 func NewStorage() *storage {
-	return &storage{}
+	return &storage{Mutex: &sync.Mutex{}}
 }
 
 func (s *storage) History(chatID string) ([]message.Message, error) {
+	s.Lock()
+	defer s.Unlock()
+
 	file, err := os.Open(chatID + ".json")
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -49,6 +53,8 @@ func (s *storage) Message(msg message.Message, chatID string) error {
 		return err
 	}
 
+	s.Lock()
+	defer s.Unlock()
 	if messages.History == nil {
 		messages.History = make([]message.Message, 0, 100)
 	}

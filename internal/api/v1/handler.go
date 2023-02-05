@@ -4,8 +4,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-
-	"github.com/HalvaPovidlo/messenger/internal/pkg/message"
 )
 
 type authService interface {
@@ -16,7 +14,7 @@ type authService interface {
 // внутренняя логика обработки сообщений
 type messageService interface {
 	Message(from, to uuid.UUID, msg string) error
-	History(person1, person2 uuid.UUID) ([]message.Message, error)
+	History(person1, person2 uuid.UUID) (string, error)
 }
 
 // распаковщик http сообщений

@@ -49,12 +49,7 @@ func (h *handler) PersonalHistory(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusNotFound, err.Error())
 	}
-
-	var response string
-	for i := 0; i < len(history); i++ {
-		response += history[i].ID.String() + ": " + history[i].Text + "\n"
-	}
-	return c.String(http.StatusOK, response)
+	return c.String(http.StatusOK, history)
 }
 
 func getUserID(c echo.Context) (uuid.UUID, error) {
