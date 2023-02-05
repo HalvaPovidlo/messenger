@@ -1,47 +1,45 @@
-package v1
+package apiv1
 
 import (
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	"github.com/HalvaPovidlo/messenger/internal/pkg/message"
 )
 
-type registrationHandler interface {
-	Register(c echo.Context) error
-	Auth(username, password string, c echo.Context) (bool, error)
+type authService interface {
+	Verify(login, password string) (uuid.UUID, bool)
+	Register(name, surname, login, password string) error
 }
 
-type messageHandler interface {
-	History(c echo.Context) error
-	Message(c echo.Context) error
-	PersonalMessage(c echo.Context) error
-	PersonalHistory(c echo.Context) error
+// внутренняя логика обработки сообщений
+type messageService interface {
+	Message(from, to uuid.UUID, msg string) error
+	History(person1, person2 uuid.UUID) ([]message.Message, error)
 }
 
-type Handler struct {
-	messages messageHandler
-
-	registration registrationHandler
+// распаковщик http сообщений
+type handler struct {
+	messages messageService
+	auth     authService
 }
 
-func NewMessagesHandler(messages messageHandler, registration registrationHandler) *Handler {
-	handler := &Handler{
-		messages:     messages,
-		registration: registration,
+func NewHandler(messages messageService, auth authService) *handler {
+	return &handler{
+		messages: messages,
+		auth:     auth,
 	}
-	return handler
 }
 
-func (h *Handler) Run(port string) {
+func (h *handler) Run(port string) {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(middleware.BasicAuth(h.registration.Auth))
 
-	e.POST("/msg", h.messages.Message)               //принимает сообщение в общий чат
-	e.GET("/msg", h.messages.History)                //возвращает историю сообщений общего чата
-	e.POST("/msg/:to", h.messages.PersonalMessage)   //принимает сообщение в личный чут
-	e.GET("/msg/:to", h.messages.PersonalHistory)    //возвращает историю личного чата
-	e.POST("/registration", h.registration.Register) //региструрет пользователя
+	e.POST("/registration", h.Register)                                 // регистрирует пользователя
+	e.POST("/msg/:to", h.PersonalMessage, middleware.BasicAuth(h.Auth)) // принимает сообщение в личный чут
+	e.GET("/msg/:to", h.PersonalHistory, middleware.BasicAuth(h.Auth))  // возвращает историю личного чата
 
 	e.Logger.Fatal(e.Start(":" + port))
 }

@@ -3,26 +3,61 @@ package auth
 import (
 	"crypto/subtle"
 	"errors"
-	"github.com/HalvaPovidlo/messenger/internal/pkg/user"
+
+	"github.com/google/uuid"
 )
 
-type service struct {
-	cache map[string]*user.User //login >> user
+type credentials struct {
+	ID       uuid.UUID `json:"id"`
+	Password []byte    `json:"password"`
 }
 
-func (s *service) Verify(login, password string) (*user.User, bool) {
-	u, ok := s.cache[login]
-	if !ok {
-		return nil, false
+type service struct {
+	cache   map[string]credentials // login -> credentials
+	storage *storage
+}
+
+func New() (*service, error) {
+	s := &service{
+		storage: NewStorage(),
+	}
+	all, err := s.storage.GetAll()
+	if err != nil {
+		return nil, err
 	}
 
-	return u, subtle.ConstantTimeCompare([]byte(password), []byte(u.Password)) == 1
+	s.cache = make(map[string]credentials, len(all.Credentials))
+	for k, v := range all.Credentials {
+		s.cache[k] = v
+	}
+
+	return s, nil
+}
+
+func (s *service) Verify(login, password string) (uuid.UUID, bool) {
+	d, ok := s.cache[login]
+	if !ok {
+		return uuid.Nil, false
+	}
+
+	return d.ID, subtle.ConstantTimeCompare([]byte(password), d.Password) == 1
 }
 
 func (s *service) Register(name, surname, login, password string) error {
 	if _, ok := s.cache[login]; ok {
-		return errors.New("login already taken")
+		return errors.New("login already exists")
 	}
-	s.cache[login] = user.New(login, password, name, surname)
+
+	creds := credentials{
+		ID:       uuid.New(),
+		Password: []byte(password),
+	}
+
+	err := s.storage.Add(login, creds)
+	if err != nil {
+		return err
+	}
+
+	s.cache[login] = creds
 	return nil
 }
