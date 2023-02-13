@@ -2,6 +2,7 @@ package apiv1
 
 import (
 	"errors"
+	"github.com/HalvaPovidlo/messenger/internal/pkg/message"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -34,6 +35,11 @@ func (h *handler) PersonalMessage(c echo.Context) error {
 	return c.String(http.StatusOK, "")
 
 }
+
+type historyOut struct {
+	History []message.Message `json:"history"`
+}
+
 func (h *handler) PersonalHistory(c echo.Context) error {
 	to, err := uuid.Parse(c.Param("to"))
 	if err != nil {
@@ -44,12 +50,13 @@ func (h *handler) PersonalHistory(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "")
 	}
-
-	history, err := h.messages.History(from, to)
+	var history historyOut
+	history.History, err = h.messages.History(from, to)
 	if err != nil {
 		return c.String(http.StatusNotFound, err.Error())
 	}
-	return c.String(http.StatusOK, history)
+
+	return c.JSON(http.StatusOK, history)
 }
 
 func getUserID(c echo.Context) (uuid.UUID, error) {

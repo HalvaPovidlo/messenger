@@ -1,7 +1,6 @@
 package message
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/HalvaPovidlo/messenger/internal/pkg/message"
@@ -55,22 +54,8 @@ func (s *service) Message(from, to uuid.UUID, text string) error {
 	return nil
 }
 
-func (s *service) History(person1, person2 uuid.UUID) (string, error) {
-	history, err := s.history(person1, person2)
-	if err != nil {
-		return "", err
-	}
-
-	var response strings.Builder
-	response.Grow((uuidLength + averageMessageLength + 3) * len(history))
-	for i := 0; i < len(history); i++ {
-		id := history[i].ID.String()
-		response.WriteString(id)
-		response.WriteString(": ")
-		response.WriteString(history[i].Text)
-		response.WriteString("\n")
-	}
-	return response.String(), nil
+func (s *service) History(person1, person2 uuid.UUID) ([]message.Message, error) {
+	return s.history(person1, person2)
 }
 
 func (s *service) history(person1, person2 uuid.UUID) ([]message.Message, error) {
