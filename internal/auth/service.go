@@ -3,10 +3,15 @@ package auth
 import (
 	"crypto/subtle"
 	"errors"
+	"github.com/HalvaPovidlo/messenger/internal/pkg/user"
 	"sync"
 
 	"github.com/google/uuid"
 )
+
+type userService interface {
+	Add(user user.User) error
+}
 
 type credentials struct {
 	ID       uuid.UUID `json:"id"`
@@ -17,10 +22,12 @@ type service struct {
 	cache   map[string]credentials // login -> credentials
 	cacheMX *sync.RWMutex
 	storage *storage
+	users   userService
 }
 
-func New() (*service, error) {
+func New(users userService) (*service, error) {
 	s := &service{
+		users:   users,
 		storage: NewStorage(),
 		cacheMX: &sync.RWMutex{},
 	}
@@ -55,15 +62,23 @@ func (s *service) Register(name, surname, login, password string) error {
 		return errors.New("login already exists")
 	}
 
+	u := user.New(login, name, surname)
 	creds := credentials{
-		ID:       uuid.New(),
+		ID:       u.ID,
 		Password: []byte(password),
 	}
 
 	s.cache[login] = creds
 	s.cacheMX.Unlock()
+	err := s.users.Add(*u)
+	if err != nil {
+		s.cacheMX.Lock()
+		delete(s.cache, login)
+		s.cacheMX.Unlock()
+		return err
+	}
 
-	err := s.storage.Add(login, creds)
+	err = s.storage.Add(login, creds)
 	if err != nil {
 		s.cacheMX.Lock()
 		delete(s.cache, login)
