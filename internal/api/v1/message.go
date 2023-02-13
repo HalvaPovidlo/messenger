@@ -16,12 +16,12 @@ type msgBody struct {
 func (h *handler) PersonalMessage(c echo.Context) error {
 	to, err := uuid.Parse(c.Param("to"))
 	if err != nil {
-		return c.String(http.StatusBadRequest, "")
+		return c.String(http.StatusBadRequest, "Invalid user ID")
 	}
 
 	from, err := getUserID(c)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "")
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	var body msgBody
@@ -30,10 +30,9 @@ func (h *handler) PersonalMessage(c echo.Context) error {
 	}
 
 	if err := h.messages.Message(from, to, body.Text); err != nil {
-		return c.String(http.StatusInternalServerError, "")
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	return c.String(http.StatusOK, "")
-
+	return c.String(http.StatusOK, "Message send")
 }
 
 type historyOut struct {
@@ -43,12 +42,12 @@ type historyOut struct {
 func (h *handler) PersonalHistory(c echo.Context) error {
 	to, err := uuid.Parse(c.Param("to"))
 	if err != nil {
-		return c.String(http.StatusBadRequest, "")
+		return c.String(http.StatusBadRequest, "Invalid user ID")
 	}
 
 	from, err := getUserID(c)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "")
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	var history historyOut
 	history.History, err = h.messages.History(from, to)

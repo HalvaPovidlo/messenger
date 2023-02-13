@@ -60,13 +60,13 @@ type usersOut struct {
 func (h *handler) Users(c echo.Context) error {
 	users, err := h.user.Users()
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "InternalServerError")
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	var out usersOut
 	out.Users = users
 	_, err = json.Marshal(out)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, "InternalServerError")
+		return c.String(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, out)
 
